@@ -9,6 +9,8 @@ HEADER_LENGTH = 10
 IP = "127.0.0.1"
 PORT = int(sys.argv[1])
 
+time.sleep(10)
+
 # Create a socket
 # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
 # socket.SOCK_STREAM - TCP, conection-based, socket.SOCK_DGRAM - UDP, connectionless, datagrams, socket.SOCK_RAW - raw IP packets

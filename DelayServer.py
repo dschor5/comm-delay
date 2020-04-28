@@ -12,72 +12,94 @@ class DelayServer(object):
    """
    Delay Server
 
-
-   Acts as a proxy that adds delays to all communicaitons.
-
-   Implements the consumer-producer architecture
+   Acts as a proxy that adds a time delays to all messages.
+   Messages --> rxThread --> [DELAY] --> txThread --> Message.
+   Implemented as a multi-threaded producer/consumer design pattern.
    """
-
-
 
    # Constants
    __THREAD_DELAY = 0.01
 
-
    def __init__(self, rxPort, txPort, ctrlPort=0):
       """
-      Initialize
-
-      Sets the ports to be used for this proxy server.
+      Initialize variables, start the server, and register it with
+      the controller.
       """
+
+      # Port to receive messages
       self.__rxPort     = rxPort
       self.__rxThread   = None
 
+      # Port to transmit messages
       self.__txPort     = txPort
       self.__txThread   = None
 
+      # Control server that allows operators to change the delays
+      # or exit the program.
       self.__ctrlServer = DelayCtrlServer.DelayCtrlServer(ctrlPort)
 
-      #self.__ctrlPort   = ctrlPort
-      #self.__ctrlThread = None
-
-      # Safe-thread sentinel to stop infinit loops.
+      # Thread-safe sentinel to stop infinit loops.
       self.__stop       = threading.Event()
 
-      # Message queue used by the producer-consumer pair.
+      # Thread-safe message queue used by the producer-consumer pair.
       self.__msgQueue   = DelayQueue.DelayQueue()
 
-      # Start servers
+      # Start server and register it with the controller.
       if(self.__startServer() == True):
          self.__ctrlServer.register(self)
 
 
    def __startServer(self):
+      """
+      Start rxThread and txThread.
+      """
+
+      # Prevent starting the same server more than once.
       if(self.__rxThread is not None and self.__txThread is not None):
          return False
 
+      # Set sentinel to start servers.
       try:
          self.__stop.clear()
+      except:
+         print("ERROR: Could not create sentinel for server.")
+         return False
 
+      # Start rxThread.
+      try:
          self.__rxThread = threading.Thread(name="rx", target=self.__runRxServer, args=(self.__stop, self.__msgQueue))
          self.__rxThread.start()
+      except:
+         print("ERROR: Could not start rxThread on port ", str(self.__rxPort))
+         self.__stop.set()
+         return False
 
+      # Start txThread.
+      try:
          self.__txThread = threading.Thread(name="tx", target=self.__runTxServer, args=(self.__stop, self.__msgQueue))
          self.__txThread.start()
-
-         #self.__ctrlThread = threading.Thread(name="ctrl", target=self.__runCtrlServer, args=(self.__stop, ))
-         #self.__ctrlThread.start()
       except:
-         print("ERROR: Could not start threads.")
+         print("ERROR: Could not start txThread on port ", str(self.__txPort))
+         self.__stop.set()
          return False
+
       return True
 
 
    def stopServer(self):
+      """
+      Stop server and wait for all theads to finish.
+      """
+
+      # Ensure threads are running.
       if(self.__rxThread is None and self.__txThread is None):
          return False
+
+      # Set flag to stop server threads.
       self.__stop.set()
       print("Stopping server.")
+
+      # Join all threads.
       try:
          self.__rxThread.join()
          self.__txThread.join()
@@ -156,6 +178,7 @@ class DelayServer(object):
          time.sleep(DelayServer.__THREAD_DELAY)
 
 
+time.sleep(10)
 DelayCtrlServer.DelayCtrlServer(1003)
 ds = DelayServer(1001, 1002)
 #ds = DelayServer(2001, 2002)

@@ -54,7 +54,7 @@ class DelayCtrlServer(object):
       ctrlSocketList = [ctrlSocket]
       ctrlClients = {}
       print("CtrlServer: Listening on port " + str(self.__ctrlPort))
-      
+
       while(stopEvent.isSet() == False):
          ctrlSocketRead, _, ctrlSocketException = select.select(ctrlSocketList, [], ctrlSocketList)
          for iSocket in ctrlSocketRead:
